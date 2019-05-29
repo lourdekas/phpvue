@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<title>CRUD CON VUE.JS + PHP + MYSQL</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+	<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+	<!-- Ahora crearemos una api -->
+
+	<div id="app">
+		<h1 style="text-align: center;">VUE.JS + PHP + MYSQL</h1>
+		<hr>
+		<p class="mensaje" v-if="mensaje">{{mensaje}}</p>
+		<button @click="nuevoUsuario=true">NUEVO</button>
+		<table>
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>NOMBRE</th>
+					<th>FOTO</th>
+					<th>ACCIÓN</th>
+				</tr>	
+			</thead>
+			<tbody>
+				<tr v-for="paisaje in paisajes">
+					<td>{{paisaje.id}}</td>
+					<td>{{paisaje.nombre}}</td>
+					<td><img :src="'img/'+paisaje.foto" width="200"></td>
+					<td>
+						<button @click="editarUsuario=true;elegirPaisaje(paisaje)">EDITAR</button>
+						<button @click="eliminarUsuario=true;elegirPaisaje(paisaje)">ELIMINAR</button>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		<div class="contenedor" v-if="nuevoUsuario">
+			<div class="modal">
+				<div class="header">
+					<button class="close" @click="nuevoUsuario=false">X</button>
+					<h1>NUEVO</h1>
+				</div>
+				<div class="contenido">
+						<label for="nombre">NOMBRE</label>
+						<input type="text" name="nombre" id="nombre"><br>
+						<label for="">DESCRIPCIÓN</label>
+						<input type="text" name="descripcion" id="descripcion"><br>
+						<label for="">FOTO</label>
+						<img v-if="url" :src="url" width="100"><br>
+						<input type="file" name="foto" ref="foto" id="foto" v-on:change="verImagen()"><br>
+						<button @click="insertarUsuario=false;insertarPaisajes()">CREAR</button>
+				</div>
+			</div>
+		</div>
+		<!-- Edición -->
+		<div class="contenedor" v-if="editarUsuario">
+			<div class="modal">
+				<div class="header">
+					<button class="close" @click="editarUsuario=false">X</button>
+					<h1>Edición</h1>
+				</div>
+				<div class="contenido">
+					<label for="nombre">NOMBRE</label>
+					<input type="text" name="enombre" id="enombre" v-model="elegido.nombre"><br>
+					<label for="">DESCRIPCIÓN</label>
+					<input type="text" name="edescripcion" id="edescripcion" v-model="elegido.descripcion"><br>
+					<label for="">FOTO</label>
+					<div v-if="url">
+						<img :src="eurl" width="100"><br>
+					</div>
+					<div v-else="eurl">
+						<img :src="'img/'+elegido.foto" width="100"><br>
+					</div>
+					<input type="hidden" name="eid" id="eid" v-model="elegido.id">
+					<input type="file" name="efoto" ref="efoto" id="efoto" v-on:change="everImagen()"><br>
+					<button @click="editarUsuario=false;editarPaisajes()">EDITAR</button>
+				</div>
+			</div>
+		</div>
+		<!-- Eliminar -->
+		<div class="contenedor" v-if="eliminarUsuario">
+			<div class="modal">
+				<div class="header">
+					<button class="close" @click="eliminarUsuario=false">X</button>
+					<h1>Eliminar</h1>
+				</div>
+				<div class="contenido">
+					<p>{{elegido.nombre}}</p>
+					<input type="hidden" name="did" id="did" v-model="elegido.id">
+					<button @click="eliminarUsuario=false;eliminarPaisajes()">SI</button>
+					<button @click="eliminarUsuario=false">NO</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script>
+		var app = new Vue({
+			el: '#app',
+			data: {
+				nuevoUsuario: false,
+				editarUsuario: false,
+				eliminarUsuario: false,
+				paisajes:[],
+				elegido:{},
+				url: null,
+				eurl: null,
+				mensaje: ""
+			},
+			mounted:function(){
+				this.mostrarPaisajes()
+			},
+			methods: {
+				mostrarPaisajes:function(){
+					axios.get("http://localhost/phpvue/api.php?accion=mostrar")
+					.then(function(response){
+						//console.log(response);
+						app.paisajes=response.data.paisajes
+					})
+				},
+				verImagen:function(){
+					var _this = this;
+					_this.file = _this.$refs.foto.files[0];
+					_this.url = URL.createObjectURL(_this.file);
+				},
+				everImagen:function(){
+					var _this = this;
+					_this.file = _this.$refs.efoto.files[0];
+					_this.url = URL.createObjectURL(_this.file);
+				},
+				insertarPaisajes:function(){
+					let formdata = new FormData()
+					formdata.append("nombre",document.getElementById("nombre").value)
+					formdata.append("descripcion",document.getElementById("descripcion").value)
+					formdata.append("foto",document.getElementById("foto").files[0])
+
+					axios.post("http://localhost/phpvue/api.php?accion=insertar",formdata)
+					.then(function(response){
+						// console.log(response)
+						app.mensaje = response.data.mensaje
+						app.mostrarPaisajes()
+						
+					})
+				},
+				editarPaisajes:function(){
+					let formdata = new FormData()
+					formdata.append("eid",document.getElementById("eid").value)
+					formdata.append("enombre",document.getElementById("enombre").value)
+					formdata.append("edescripcion",document.getElementById("edescripcion").value)
+					formdata.append("efoto",document.getElementById("efoto").files[0])
+
+					axios.post("http://localhost/phpvue/api.php?accion=editar",formdata)
+					.then(function(response){
+						// console.log(response)
+						app.mensaje = response.data.mensaje
+						app.mostrarPaisajes()
+						
+					})
+				},
+				eliminarPaisajes:function(){
+					let formdata = new FormData()
+					formdata.append("did",document.getElementById("did").value)
+
+					axios.post("http://localhost/phpvue/api.php?accion=eliminar",formdata)
+					.then(function(response){
+						// console.log(response)
+						app.mensaje = response.data.mensaje
+						app.mostrarPaisajes()
+						
+					})
+				},
+				elegirPaisaje(paisaje){
+					app.elegido = paisaje
+				}
+
+			}
+		})
+	</script>
+</body>
+</html>
